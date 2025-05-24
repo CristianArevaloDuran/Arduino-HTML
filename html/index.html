@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arduino</title>
+</head>
+<style>
+    body {
+        background-color: #272222;
+        margin: 0;
+        padding: 0;
+    }
+    .container {
+        display: flex;
+        flex-direction: column;
+        width: 100dvw;
+        height: 100dvh;
+        justify-content: center;
+        align-items: center;
+    }
+    .container h1 {
+        color: white;
+        font-size: 50px;
+        text-align: center;
+        font-family: 'Verdana', sans-serif;
+    }
+    .container p {
+        color: white;
+        font-size: 30px;
+        text-align: center;
+        font-family: 'Verdana', sans-serif;
+    }
+    .led {
+        width: 50px;
+        height: 50px;
+        background-color: #b4ff0566;
+        border-radius: 50%;
+        margin: 20px auto;
+        transition: all .15s ease;
+    }
+    .chart {
+        width: 800px;
+        height: 400px;
+        margin: 20px auto;
+    } 
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<body>
+    <div class="container">
+        <h1>Distancia</h1>
+        <p id="distacia"></p>
+        <div id="led" class="led"></div>
+        <canvas id="chart" class="chart"></canvas>
+    </div>
+    
+    <script>
+        const green = '#b4ff0566';
+        const red = '#f50f4866';
+        const ctx = document.getElementById('chart').getContext('2d');
+        const data = {
+          labels: [],
+          datasets: [{
+            label: 'Distancia (cm)',
+            backgroundColor: green,
+            borderColor: green,
+            data: [],
+            fill: true,
+            tension: 0.3,
+          }]
+        };
+
+        const config = {
+          type: 'line',
+          data: data,
+          options: {
+            animation: false,
+            scales: {
+              y: {
+                min: 0,
+                max: 100
+              }
+            }
+          }
+        };
+
+        const chart = new Chart(ctx, config);
+
+
+        const distanciaElement = document.getElementById('distacia');
+        const ledElement = document.getElementById('led');
+        const socket = new WebSocket('ws://localhost:8080');
+        
+
+        socket.onmessage = function(event) {
+            const distance = Number(event.data);
+            const time = new Date().toLocaleTimeString();
+
+            if (data.labels.length > 50) {
+              data.labels.shift();
+              data.datasets[0].data.shift();
+            }
+        
+            data.labels.push(time);
+            data.datasets[0].data.push(distance);
+            chart.update();
+            
+            distanciaElement.textContent = `Distancia: ${distance} cm`;
+            if (parseInt(distance) < 30) {
+                ledElement.style.backgroundColor = red;
+                data.datasets[0].backgroundColor = red;
+                data.datasets[0].borderColor = red;
+            } else {
+                ledElement.style.backgroundColor = green;
+                data.datasets[0].backgroundColor = green;
+                data.datasets[0].borderColor = green;
+            }
+        };
+    </script>
+</body>
+</html>
